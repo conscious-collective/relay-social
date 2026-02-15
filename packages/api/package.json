@@ -1,0 +1,29 @@
+{
+  "name": "@relay/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsx src/index.ts",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "hono": "^4",
+    "@hono/node-server": "^1",
+    "drizzle-orm": "^0.38",
+    "better-sqlite3": "^11",
+    "bullmq": "^5",
+    "ioredis": "^5",
+    "nanoid": "^5",
+    "mime-types": "^2",
+    "multer": "^1"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5",
+    "drizzle-kit": "^0.30",
+    "@types/better-sqlite3": "^7",
+    "@types/node": "^22"
+  }
+}

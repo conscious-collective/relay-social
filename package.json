@@ -1,0 +1,14 @@
+{
+  "name": "relay-social",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "api": "npm run dev --workspace=@relay/api",
+    "dashboard": "npm run dev --workspace=@relay/dashboard"
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  }
+}
