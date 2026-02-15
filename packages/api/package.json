@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsx src/index.ts",
+    "build": "echo 'API build skipped (runtime via tsx)'",
+    "start": "tsx src/index.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
