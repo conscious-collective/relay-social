@@ -50,8 +50,6 @@ Tests run automatically on:
 ### Pipeline Jobs:
 1. **API Tests** - Unit tests
 2. **Dashboard Tests** - Build verification
-3. **Lint & Type Check** - Code quality
-4. **Security Audit** - Vulnerability scanning
 
 ## Writing Tests
 
