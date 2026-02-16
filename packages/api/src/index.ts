@@ -8,7 +8,6 @@ import postsRouter from "./routes/posts.js";
 import accountsRouter from "./routes/accounts.js";
 import mediaRouter from "./routes/media.js";
 import analyticsRouter from "./routes/analytics.js";
-import oauthRouter from "./routes/oauth.js";
 import { db, sqlite } from "./db/index.js";
 import { apiKeys } from "./db/schema.js";
 import { nanoid } from "nanoid";
@@ -41,10 +40,7 @@ app.get("/", (c) =>
 app.get("/api", (c) =>
   c.json({
     endpoints: {
-      "GET /api/oauth/providers": "List OAuth providers",
-      "GET /api/oauth/instagram": "Start Instagram OAuth flow",
-      "GET /api/oauth/twitter": "Start Twitter OAuth flow",
-      "GET /api/oauth/linkedin": "Start LinkedIn OAuth flow",
+      // Note: OAuth flows are handled by Dashboard (frontend)
       "GET /api/accounts": "List connected accounts",
       "POST /api/accounts": "Add account (manual)",
       "DELETE /api/accounts/:id": "Remove account",
@@ -61,25 +57,18 @@ app.get("/api", (c) =>
       "GET /api/analytics/posts/:id": "Post analytics",
       "GET /api/analytics/overview": "Overview analytics",
     },
-    oauth: {
-      instagram: {
-        required_env: ["META_APP_ID", "META_APP_SECRET"],
-        scopes: ["instagram_basic", "instagram_content_publish", "pages_show_list"],
-      },
-      twitter: {
-        required_env: ["TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET"],
-        scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
-      },
-      linkedin: {
-        required_env: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
-        scopes: ["r_liteprofile", "r_emailaddress", "w_member_social"],
-      },
-    },
+    note: "OAuth flows are handled by the Dashboard application (Next.js)",
   })
 );
 
-// OAuth routes (no auth required)
-app.route("/api/oauth", oauthRouter);
+// OAuth routes - handled by Dashboard (public-facing app)
+app.use("/api/oauth/*", (c) =>
+  c.json({ 
+    error: "OAuth flows are handled by the Dashboard application",
+    dashboard: "http://localhost:3000/api/oauth/instagram",
+    message: "Redirect to dashboard for OAuth connections"
+  }, 404)
+);
 
 // Protected API routes
 app.use("/api/*", authMiddleware);
@@ -183,16 +172,8 @@ bootstrap().then(async () => {
     console.log(`   OAuth: http://localhost:${info.port}/api/oauth/providers`);
     console.log(`   Scheduler: ${schedulerEnabled ? '✅ enabled' : '❌ disabled (Redis required)'}\n`);
     
-    // Environment check
-    const envIssues = [];
-    if (!process.env.META_APP_ID) envIssues.push("META_APP_ID (Instagram OAuth)");
-    if (!process.env.TWITTER_CLIENT_ID) envIssues.push("TWITTER_CLIENT_ID (Twitter OAuth)");
-    if (!process.env.LINKEDIN_CLIENT_ID) envIssues.push("LINKEDIN_CLIENT_ID (LinkedIn OAuth)");
-    
-    if (envIssues.length > 0) {
-      console.log(`🔶 Missing OAuth config: ${envIssues.join(", ")}`);
-      console.log(`   OAuth flows will be disabled until configured\n`);
-    }
+    // Note: OAuth credentials now configured in Dashboard, not API
+    console.log("📝 Note: OAuth flows handled by Dashboard (port 3000)");
   });
 });
 
