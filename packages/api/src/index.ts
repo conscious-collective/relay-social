@@ -8,9 +8,15 @@ import postsRouter from "./routes/posts.js";
 import accountsRouter from "./routes/accounts.js";
 import mediaRouter from "./routes/media.js";
 import analyticsRouter from "./routes/analytics.js";
+import oauthRouter from "./routes/oauth.js";
 import { db, sqlite } from "./db/index.js";
 import { apiKeys } from "./db/schema.js";
 import { nanoid } from "nanoid";
+// import { SchedulerService, worker } from "./services/scheduler.js"; // Temporarily disabled
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const app = new Hono();
 
@@ -35,8 +41,11 @@ app.get("/", (c) =>
 app.get("/api", (c) =>
   c.json({
     endpoints: {
+      "GET /api/oauth/providers": "List OAuth providers",
+      "GET /api/oauth/instagram": "Start Instagram OAuth flow",
+      "GET /api/oauth/twitter": "Start Twitter OAuth flow",
       "GET /api/accounts": "List connected accounts",
-      "POST /api/accounts": "Add account",
+      "POST /api/accounts": "Add account (manual)",
       "DELETE /api/accounts/:id": "Remove account",
       "GET /api/posts": "List posts",
       "POST /api/posts": "Create post",
@@ -51,8 +60,21 @@ app.get("/api", (c) =>
       "GET /api/analytics/posts/:id": "Post analytics",
       "GET /api/analytics/overview": "Overview analytics",
     },
+    oauth: {
+      instagram: {
+        required_env: ["META_APP_ID", "META_APP_SECRET"],
+        scopes: ["instagram_basic", "instagram_content_publish", "pages_show_list"],
+      },
+      twitter: {
+        required_env: ["TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET"],
+        scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
+      },
+    },
   })
 );
+
+// OAuth routes (no auth required)
+app.route("/api/oauth", oauthRouter);
 
 // Protected API routes
 app.use("/api/*", authMiddleware);
@@ -140,10 +162,27 @@ async function bootstrap() {
 
 const port = parseInt(process.env.API_PORT || "3001");
 
-bootstrap().then(() => {
+bootstrap().then(async () => {
+  // TODO: Enable scheduler when Redis is available
+  const schedulerEnabled = false;
+  console.log("🔶 Scheduler disabled - Redis integration disabled for now");
+  console.log("   Posts will be published immediately");
+  
   serve({ fetch: app.fetch, port }, (info) => {
     console.log(`\n📡 Relay Social API running at http://localhost:${info.port}`);
-    console.log(`   Docs: http://localhost:${info.port}/api\n`);
+    console.log(`   Docs: http://localhost:${info.port}/api`);
+    console.log(`   OAuth: http://localhost:${info.port}/api/oauth/providers`);
+    console.log(`   Scheduler: ${schedulerEnabled ? '✅ enabled' : '❌ disabled (Redis required)'}\n`);
+    
+    // Environment check
+    const envIssues = [];
+    if (!process.env.META_APP_ID) envIssues.push("META_APP_ID (Instagram OAuth)");
+    if (!process.env.TWITTER_CLIENT_ID) envIssues.push("TWITTER_CLIENT_ID (Twitter OAuth)");
+    
+    if (envIssues.length > 0) {
+      console.log(`🔶 Missing OAuth config: ${envIssues.join(", ")}`);
+      console.log(`   OAuth flows will be disabled until configured\n`);
+    }
   });
 });
 
