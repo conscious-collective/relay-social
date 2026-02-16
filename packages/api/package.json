@@ -2,32 +2,36 @@
   "name": "@relay/api",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "echo 'API build skipped (runtime via tsx)'",
     "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "hono": "^4",
     "@hono/node-server": "^1",
-    "@hono/oauth-providers": "^0.8.5",
+    "drizzle-orm": "^0.38",
     "better-sqlite3": "^11",
     "bullmq": "^5",
-    "dotenv": "^17.3.1",
-    "drizzle-orm": "^0.38",
-    "hono": "^4",
-    "ioredis": "^5.9.3",
-    "mime-types": "^2",
-    "multer": "^1",
+    "ioredis": "^5",
     "nanoid": "^5",
-    "redis": "^5.10.0"
+    "mime-types": "^2",
+    "multer": "^1"
   },
   "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5",
+    "drizzle-kit": "^0.30",
     "@types/better-sqlite3": "^7",
     "@types/node": "^22",
-    "drizzle-kit": "^0.30",
-    "tsx": "^4",
-    "typescript": "^5"
+    "@types/supertest": "^6",
+    "vitest": "^2",
+    "supertest": "^7"
   }
 }
