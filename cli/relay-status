@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Check status of a post
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/helpers.sh"
+
+POST_ID="$1"
+
+if [[ -z "$POST_ID" ]]; then
+  echo "Usage: relay-status <post-id>"
+  exit 1
+fi
+
+RESPONSE=$(relay_api GET "/api/posts/$POST_ID")
+
+if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+  echo "❌ Error:"
+  echo "$RESPONSE" | jq -r '.error'
+  exit 1
+fi
+
+echo "$RESPONSE" | jq -r '
+  .post | 
+  "Post: \(.id)",
+  "Status: \(.status)",
+  "Account: \(.accountId)",
+  (if .scheduledAt then "Scheduled: \(.scheduledAt)" else empty end),
+  (if .publishedAt then "Published: \(.publishedAt)" else empty end),
+  (if .platformPostId then "Platform ID: \(.platformPostId)" else empty end),
+  (if .errorMessage then "Error: \(.errorMessage)" else empty end)
+'

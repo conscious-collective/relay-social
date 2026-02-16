@@ -141,6 +141,10 @@ async function bootstrap() {
 const port = parseInt(process.env.API_PORT || "3001");
 
 bootstrap().then(() => {
+  // Start scheduler
+  const { scheduler } = require("./services/scheduler.js");
+  scheduler.start();
+
   serve({ fetch: app.fetch, port }, (info) => {
     console.log(`\n📡 Relay Social API running at http://localhost:${info.port}`);
     console.log(`   Docs: http://localhost:${info.port}/api\n`);
