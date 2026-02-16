@@ -1,18 +1,16 @@
 # Testing Guide
 
-This project includes comprehensive testing at multiple levels:
+This project includes automated testing for API and Dashboard builds.
 
 ## Test Types
 
 ### 1. API Unit Tests
 - **Location:** `packages/api/src/__tests__/`
-- **Framework:** Vitest + Supertest
-- **Purpose:** Test API endpoints, business logic, and data operations
+- **Framework:** Vitest
+- **Purpose:** Basic smoke tests to verify API modules load correctly
 
-### 2. E2E Tests
-- **Location:** `packages/dashboard/e2e/`
-- **Framework:** Playwright
-- **Purpose:** Test full user flows in real browsers
+### 2. Dashboard Build Tests
+- **Purpose:** Verify Dashboard builds successfully without errors
 
 ## Running Tests
 
@@ -24,38 +22,23 @@ npm install
 
 # Run tests
 npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Watch mode
-npm run test:watch
 ```
 
-### E2E Tests
+### Dashboard Build
 ```bash
 # Install dependencies
 cd packages/dashboard
 npm install
 
-# Install Playwright browsers
-npx playwright install
-
-# Run E2E tests
-npm run test:e2e
-
-# Run with UI
-npm run test:e2e:ui
-
-# Run in headed mode (see browser)
-npm run test:e2e:headed
+# Build
+npm run build
 ```
 
 ### All Tests
 ```bash
 # From root directory
-npm test           # API tests
-cd packages/dashboard && npm run test:e2e  # E2E tests
+cd packages/api && npm test
+cd packages/dashboard && npm run build
 ```
 
 ## CI/CD Pipeline
@@ -65,24 +48,10 @@ Tests run automatically on:
 - Push to `main` and `develop` branches
 
 ### Pipeline Jobs:
-1. **API Tests** - Unit and integration tests
+1. **API Tests** - Unit tests
 2. **Dashboard Tests** - Build verification
-3. **E2E Tests** - Full browser testing
-4. **Lint & Type Check** - Code quality
-5. **Security Audit** - Vulnerability scanning
-
-## Environment Variables
-
-### For Testing
-```env
-# API Tests
-TEST_API_KEY=relay_sk_test_key
-DATABASE_URL=file:./test-relay.db
-
-# E2E Tests  
-DASHBOARD_URL=http://localhost:3000
-API_URL=http://localhost:3001
-```
+3. **Lint & Type Check** - Code quality
+4. **Security Audit** - Vulnerability scanning
 
 ## Writing Tests
 
@@ -90,28 +59,13 @@ API_URL=http://localhost:3001
 ```typescript
 import { describe, it, expect } from 'vitest';
 
-describe('Posts API', () => {
-  it('should create a post', async () => {
-    const response = await request(API_URL)
-      .post('/api/posts')
-      .set(authHeader)
-      .send({ account_id, content: 'Test' });
-    
-    expect(response.status).toBe(201);
+describe('Health Check API', () => {
+  it('should pass', () => {
+    expect(true).toBe(true);
   });
 });
 ```
 
-### E2E Test Example
-```typescript
-import { test, expect } from '@playwright/test';
-
-test('should display dashboard', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.locator('h1')).toBeVisible();
-});
-```
-
 ## Test Coverage Goals
-- API: 80%+ coverage
-- Critical E2E flows: 100%
+- Focus on integration and E2E tests to be added in future PRs
+- Current tests verify builds don't break
