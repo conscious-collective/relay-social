@@ -173,7 +173,11 @@ bootstrap().then(async () => {
   console.log("🔶 Scheduler disabled - Redis integration disabled for now");
   console.log("   Posts will be published immediately");
   
-  serve({ fetch: app.fetch, port }, (info) => {
+  serve({ 
+    fetch: app.fetch, 
+    port,
+    hostname: "0.0.0.0" // Bind to all interfaces for Tailscale access
+  }, (info) => {
     console.log(`\n📡 Relay Social API running at http://localhost:${info.port}`);
     console.log(`   Docs: http://localhost:${info.port}/api`);
     console.log(`   OAuth: http://localhost:${info.port}/api/oauth/providers`);
