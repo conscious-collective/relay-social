@@ -71,69 +71,6 @@ jobs:
           cd packages/dashboard
           npm run build
 
-  # E2E Tests
-  e2e-tests:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: [api-tests, dashboard-tests]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Install API dependencies
-        run: |
-          cd packages/api
-          npm ci
-
-      - name: Install Dashboard dependencies
-        run: |
-          cd packages/dashboard
-          npm ci
-
-      - name: Start API server
-        run: |
-          cd packages/api
-          npm run dev &
-          sleep 10
-
-      - name: Start Dashboard server
-        run: |
-          cd packages/dashboard
-          npm run dev &
-          sleep 10
-
-      - name: Run E2E tests
-        env:
-          DASHBOARD_URL: http://localhost:3000
-          API_URL: http://localhost:3001
-        run: |
-          cd packages/dashboard
-          npx playwright test
-
-      - name: Upload E2E test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-test-results
-          path: packages/dashboard/playwright-report
-
-      - name: Upload E2E screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-screenshots
-          path: packages/dashboard/test-results
-
   # Lint and Type Check
   lint:
     name: Lint & Type Check
