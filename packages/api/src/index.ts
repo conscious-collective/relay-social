@@ -44,6 +44,7 @@ app.get("/api", (c) =>
       "GET /api/oauth/providers": "List OAuth providers",
       "GET /api/oauth/instagram": "Start Instagram OAuth flow",
       "GET /api/oauth/twitter": "Start Twitter OAuth flow",
+      "GET /api/oauth/linkedin": "Start LinkedIn OAuth flow",
       "GET /api/accounts": "List connected accounts",
       "POST /api/accounts": "Add account (manual)",
       "DELETE /api/accounts/:id": "Remove account",
@@ -68,6 +69,10 @@ app.get("/api", (c) =>
       twitter: {
         required_env: ["TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET"],
         scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
+      },
+      linkedin: {
+        required_env: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+        scopes: ["r_liteprofile", "r_emailaddress", "w_member_social"],
       },
     },
   })
@@ -178,6 +183,7 @@ bootstrap().then(async () => {
     const envIssues = [];
     if (!process.env.META_APP_ID) envIssues.push("META_APP_ID (Instagram OAuth)");
     if (!process.env.TWITTER_CLIENT_ID) envIssues.push("TWITTER_CLIENT_ID (Twitter OAuth)");
+    if (!process.env.LINKEDIN_CLIENT_ID) envIssues.push("LINKEDIN_CLIENT_ID (LinkedIn OAuth)");
     
     if (envIssues.length > 0) {
       console.log(`🔶 Missing OAuth config: ${envIssues.join(", ")}`);

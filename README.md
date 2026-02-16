@@ -24,6 +24,7 @@ API-first social media management. Built for AI agents, intuitive enough for hum
 
 - Instagram (via Meta Graph API)
 - Twitter/X (via API v2)
+- LinkedIn (via LinkedIn API v2)
 
 ## Tech Stack
 

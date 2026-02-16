@@ -14,6 +14,10 @@ const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID;
 const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET;
 const TWITTER_REDIRECT_URI = process.env.TWITTER_REDIRECT_URI || "http://localhost:3001/api/oauth/twitter/callback";
 
+const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
+const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
+const LINKEDIN_REDIRECT_URI = process.env.LINKEDIN_REDIRECT_URI || "http://localhost:3001/api/oauth/linkedin/callback";
+
 // Instagram OAuth Flow
 app.get("/instagram", (c) => {
   if (!META_APP_ID) {
@@ -237,6 +241,131 @@ app.get("/twitter/callback", async (c) => {
   }
 });
 
+// LinkedIn OAuth Flow
+app.get("/linkedin", (c) => {
+  if (!LINKEDIN_CLIENT_ID) {
+    return c.json({ error: "LinkedIn OAuth not configured" }, 500);
+  }
+
+  const state = nanoid();
+  const scope = ["r_liteprofile", "r_emailaddress", "w_member_social"].join(" ");
+  
+  const authUrl = new URL("https://www.linkedin.com/oauth/v2/authorization");
+  authUrl.searchParams.set("client_id", LINKEDIN_CLIENT_ID);
+  authUrl.searchParams.set("redirect_uri", LINKEDIN_REDIRECT_URI);
+  authUrl.searchParams.set("scope", scope);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("state", state);
+
+  // In production, you'd store state in session/db for CSRF protection
+  return c.redirect(authUrl.toString());
+});
+
+app.get("/linkedin/callback", async (c) => {
+  const code = c.req.query("code");
+  const state = c.req.query("state");
+
+  if (!code) {
+    return c.json({ error: "Authorization denied" }, 400);
+  }
+
+  try {
+    // Exchange code for access token
+    const tokenResponse = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: LINKEDIN_CLIENT_ID!,
+        client_secret: LINKEDIN_CLIENT_SECRET!,
+        redirect_uri: LINKEDIN_REDIRECT_URI,
+        code: code,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    if (!tokenData.access_token) {
+      return c.json({ error: "Failed to get access token", details: tokenData }, 500);
+    }
+
+    // Get user profile
+    const userResponse = await fetch("https://api.linkedin.com/v2/people/~?projection=(id,firstName,lastName,profilePicture(displayImage~:playableStreams))", {
+      headers: {
+        "Authorization": `Bearer ${tokenData.access_token}`,
+        "X-Restli-Protocol-Version": "2.0.0",
+      },
+    });
+    const userData = await userResponse.json();
+
+    if (!userData.id) {
+      return c.json({ error: "Failed to get user data", details: userData }, 500);
+    }
+
+    // Get user email
+    const emailResponse = await fetch("https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))", {
+      headers: {
+        "Authorization": `Bearer ${tokenData.access_token}`,
+        "X-Restli-Protocol-Version": "2.0.0",
+      },
+    });
+    const emailData = await emailResponse.json();
+
+    const email = emailData.elements?.[0]?.["handle~"]?.emailAddress;
+    const firstName = userData.firstName?.localized?.en_US || userData.firstName?.preferredLocale?.language || "User";
+    const lastName = userData.lastName?.localized?.en_US || userData.lastName?.preferredLocale?.language || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    // Extract profile picture URL
+    let avatarUrl = null;
+    if (userData.profilePicture?.["displayImage~"]?.elements?.length > 0) {
+      const images = userData.profilePicture["displayImage~"].elements;
+      // Get the largest image
+      const largestImage = images.reduce((prev: any, current: any) => 
+        (current.data["com.linkedin.digitalmedia.mediaartifact.StillImage"].storageSize.width > 
+         prev.data["com.linkedin.digitalmedia.mediaartifact.StillImage"].storageSize.width) ? current : prev
+      );
+      avatarUrl = largestImage?.identifiers?.[0]?.identifier;
+    }
+
+    // Save to database
+    const accountId = `acc_${nanoid(12)}`;
+    const [account] = await db.insert(accounts).values({
+      id: accountId,
+      platform: "linkedin",
+      platformId: userData.id,
+      name: fullName,
+      handle: email || fullName.toLowerCase().replace(/\s+/g, ''),
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token || null,
+      tokenExpiresAt: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000) : null,
+      avatarUrl: avatarUrl,
+      metadata: JSON.stringify({
+        email: email,
+        firstName: firstName,
+        lastName: lastName,
+        locale: userData.firstName?.preferredLocale || null,
+      }),
+    }).returning();
+
+    return c.json({
+      success: true,
+      message: "LinkedIn account connected successfully",
+      account: {
+        id: account.id,
+        platform: "linkedin",
+        name: account.name,
+        handle: account.handle,
+        avatar: account.avatarUrl,
+      },
+    });
+
+  } catch (error) {
+    console.error("LinkedIn OAuth error:", error);
+    return c.json({ error: "OAuth flow failed", details: error }, 500);
+  }
+});
+
 // List OAuth providers and their status
 app.get("/providers", (c) => {
   return c.json({
@@ -245,11 +374,19 @@ app.get("/providers", (c) => {
         available: !!META_APP_ID,
         authUrl: "/api/oauth/instagram",
         requirements: ["META_APP_ID", "META_APP_SECRET"],
+        scopes: ["instagram_basic", "instagram_content_publish", "pages_show_list"],
       },
       twitter: {
         available: !!TWITTER_CLIENT_ID,
         authUrl: "/api/oauth/twitter", 
         requirements: ["TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET"],
+        scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
+      },
+      linkedin: {
+        available: !!LINKEDIN_CLIENT_ID,
+        authUrl: "/api/oauth/linkedin",
+        requirements: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+        scopes: ["r_liteprofile", "r_emailaddress", "w_member_social"],
       },
     },
   });
