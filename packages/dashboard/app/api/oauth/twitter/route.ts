@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       error: 'Twitter OAuth not configured',
       configure: 'Set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET in environment'
-    }, 500);
+    }, { status: 500 });
   }
 
   const state = crypto.randomUUID();

@@ -2,7 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL!);
+// Lazy initialization to avoid build-time database connection
+const getSql = () => {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set');
+  }
+  return neon(process.env.DATABASE_URL);
+};
 
 const META_APP_ID = process.env.META_APP_ID;
 const META_APP_SECRET = process.env.META_APP_SECRET;
@@ -14,7 +20,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       error: 'Instagram OAuth not configured',
       configure: 'Set META_APP_ID and META_APP_SECRET in environment'
-    }, 500);
+    }, { status: 500 });
   }
 
   const state = crypto.randomUUID();

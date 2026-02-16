@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       error: 'LinkedIn OAuth not configured',
       configure: 'Set LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in environment'
-    }, 500);
+    }, { status: 500 });
   }
 
   const state = crypto.randomUUID();
