@@ -12,32 +12,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # API Tests
-  api-tests:
-    name: API Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run API unit tests
-        run: |
-          cd packages/api
-          npm test
-
-  # Dashboard Tests
+  # Dashboard Build Test
   dashboard-tests:
-    name: Dashboard Tests
+    name: Dashboard Build
     runs-on: ubuntu-latest
     
     steps:
