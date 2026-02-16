@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, desc, and, sum } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { posts, accounts, analytics } from "../db/schema.js";
 import { PublisherService } from "../services/publisher.js";
@@ -107,26 +107,29 @@ app.get("/accounts/:id", async (c) => {
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
 
-  // Get aggregated analytics for published posts in this account
-  const analyticsResults = await db
-    .select({
-      totalPosts: sum(1),
-      totalImpressions: sum(analytics.impressions),
-      totalReach: sum(analytics.reach),
-      totalLikes: sum(analytics.likes),
-      totalComments: sum(analytics.comments),
-      totalShares: sum(analytics.shares),
-      totalSaves: sum(analytics.saves),
-      totalClicks: sum(analytics.clicks),
-    })
+  // Get published posts for this account (simplified)
+  const publishedPosts = await db
+    .select()
     .from(posts)
-    .innerJoin(analytics, eq(posts.id, analytics.postId))
+    .leftJoin(analytics, eq(posts.id, analytics.postId))
     .where(
       and(
         eq(posts.accountId, accountId),
         eq(posts.status, "published")
       )
     );
+
+  // Calculate totals manually
+  const totals = {
+    totalPosts: publishedPosts.length,
+    totalImpressions: publishedPosts.reduce((sum, p) => sum + (p.analytics?.impressions || 0), 0),
+    totalReach: publishedPosts.reduce((sum, p) => sum + (p.analytics?.reach || 0), 0),
+    totalLikes: publishedPosts.reduce((sum, p) => sum + (p.analytics?.likes || 0), 0),
+    totalComments: publishedPosts.reduce((sum, p) => sum + (p.analytics?.comments || 0), 0),
+    totalShares: publishedPosts.reduce((sum, p) => sum + (p.analytics?.shares || 0), 0),
+    totalSaves: publishedPosts.reduce((sum, p) => sum + (p.analytics?.saves || 0), 0),
+    totalClicks: publishedPosts.reduce((sum, p) => sum + (p.analytics?.clicks || 0), 0),
+  };
 
   // Get recent posts with analytics
   const recentPosts = await db
@@ -156,16 +159,7 @@ app.get("/accounts/:id", async (c) => {
     .orderBy(desc(posts.publishedAt))
     .limit(10);
 
-  const totals = analyticsResults[0] || {
-    totalPosts: 0,
-    totalImpressions: 0,
-    totalReach: 0,
-    totalLikes: 0,
-    totalComments: 0,
-    totalShares: 0,
-    totalSaves: 0,
-    totalClicks: 0,
-  };
+  // totals already calculated above
 
   return c.json({
     account: {
@@ -204,25 +198,37 @@ app.get("/accounts/:id", async (c) => {
 app.get("/overview", async (c) => {
   const days = parseInt(c.req.query("days") || "30");
 
-  // Get totals across all accounts
-  const overviewResults = await db
-    .select({
-      totalAccounts: sum(1),
-      platform: accounts.platform,
-      totalPosts: sum(1),
-      totalImpressions: sum(analytics.impressions),
-      totalReach: sum(analytics.reach),
-      totalLikes: sum(analytics.likes),
-      totalComments: sum(analytics.comments),
-      totalShares: sum(analytics.shares),
-      totalSaves: sum(analytics.saves),
-      totalClicks: sum(analytics.clicks),
-    })
+  // Get all accounts with their published posts (simplified)
+  const allAccounts = await db
+    .select()
     .from(accounts)
     .leftJoin(posts, eq(accounts.id, posts.accountId))
     .leftJoin(analytics, eq(posts.id, analytics.postId))
-    .where(eq(posts.status, "published"))
-    .groupBy(accounts.platform);
+    .where(eq(posts.status, "published"));
+
+  // Group by platform manually
+  const platformMap = new Map();
+  allAccounts.forEach(row => {
+    const platform = row.accounts.platform;
+    if (!platformMap.has(platform)) {
+      platformMap.set(platform, {
+        platform,
+        posts: 0,
+        impressions: 0,
+        reach: 0,
+        engagement: 0
+      });
+    }
+    const stats = platformMap.get(platform);
+    stats.posts += 1;
+    if (row.analytics) {
+      stats.impressions += row.analytics.impressions || 0;
+      stats.reach += row.analytics.reach || 0;
+      stats.engagement += (row.analytics.likes || 0) + (row.analytics.comments || 0) + (row.analytics.shares || 0);
+    }
+  });
+
+  const platformBreakdown = Array.from(platformMap.values());
 
   // Get recent activity
   const recentActivity = await db
@@ -248,15 +254,7 @@ app.get("/overview", async (c) => {
     .orderBy(desc(posts.publishedAt))
     .limit(20);
 
-  const platformBreakdown = overviewResults.map(row => ({
-    platform: row.platform,
-    posts: parseInt(row.totalPosts?.toString() || "0"),
-    impressions: parseInt(row.totalImpressions?.toString() || "0"),
-    reach: parseInt(row.totalReach?.toString() || "0"),
-    engagement: parseInt(row.totalLikes?.toString() || "0") + 
-                parseInt(row.totalComments?.toString() || "0") + 
-                parseInt(row.totalShares?.toString() || "0"),
-  }));
+  // platformBreakdown already calculated above
 
   return c.json({
     dateRange: {
@@ -266,7 +264,7 @@ app.get("/overview", async (c) => {
     },
     totals: {
       platforms: platformBreakdown.length,
-      accounts: overviewResults.reduce((sum, row) => sum + parseInt(row.totalAccounts?.toString() || "0"), 0),
+      accounts: new Set(allAccounts.map(row => row.accounts.id)).size,
       posts: platformBreakdown.reduce((sum, row) => sum + row.posts, 0),
       impressions: platformBreakdown.reduce((sum, row) => sum + row.impressions, 0),
       engagement: platformBreakdown.reduce((sum, row) => sum + row.engagement, 0),
