@@ -26,24 +26,14 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: packages/api/package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd packages/api
-          npm ci
+        run: npm ci
 
       - name: Run API unit tests
         run: |
           cd packages/api
           npm test
-
-      - name: Upload test coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-test-results
-          path: packages/api/coverage
 
   # Dashboard Tests
   dashboard-tests:
@@ -59,12 +49,9 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: packages/dashboard/package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd packages/dashboard
-          npm ci
+        run: npm ci
 
       - name: Build Dashboard
         run: |
