@@ -2,6 +2,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // Enable globals (beforeAll, afterAll, describe, it, etc.)
+    globals: true,
+    
     // Test environment
     environment: 'node',
     
