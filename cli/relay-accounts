@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# List connected social media accounts
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/helpers.sh"
+
+RESPONSE=$(relay_api GET "/api/accounts")
+
+echo "$RESPONSE" | jq -r '.accounts[] | "\(.id) | \(.platform) | @\(.handle)"'

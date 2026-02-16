@@ -100,19 +100,16 @@ app.delete("/:id", async (c) => {
 // Publish now
 app.post("/:id/publish", async (c) => {
   const id = c.req.param("id");
+  const { PublisherService } = await import("../services/publisher.js");
+  
+  const result = await PublisherService.publishPost(id);
+
+  if (!result.success) {
+    return c.json({ error: result.error }, 400);
+  }
+
   const [post] = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
-  if (!post) return c.json({ error: "Post not found" }, 404);
-  if (post.status === "published") return c.json({ error: "Already published" }, 400);
-
-  // TODO: call platform adapter to publish
-  // For now, mark as publishing
-  const [updated] = await db
-    .update(posts)
-    .set({ status: "publishing", updatedAt: new Date() })
-    .where(eq(posts.id, id))
-    .returning();
-
-  return c.json({ post: updated });
+  return c.json({ post });
 });
 
 // Bulk create
