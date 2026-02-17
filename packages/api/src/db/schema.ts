@@ -56,8 +56,20 @@ export const analytics = sqliteTable("analytics", {
 
 export const apiKeys = sqliteTable("api_keys", {
   id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   key: text("key").notNull().unique(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+});
+
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  tier: text("tier").notNull().default("free"), // free, pro
+  stripeCustomerId: text("stripe_customer_id"),
+  dodoCustomerId: text("dodo_customer_id"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });

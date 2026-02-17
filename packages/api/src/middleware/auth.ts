@@ -1,7 +1,10 @@
 import { createMiddleware } from "hono/factory";
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { apiKeys } from "../db/schema.js";
+import { users } from "../db/schema.js";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "relay-social-secret-change-in-prod";
 
 export const authMiddleware = createMiddleware(async (c, next) => {
   const authHeader = c.req.header("Authorization");
@@ -9,23 +12,20 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     return c.json({ error: "Missing or invalid Authorization header" }, 401);
   }
 
-  const key = authHeader.slice(7);
-  const [apiKey] = await db
-    .select()
-    .from(apiKeys)
-    .where(eq(apiKeys.key, key))
-    .limit(1);
+  const token = authHeader.slice(7);
+  
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+    const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+    
+    if (!user) {
+      return c.json({ error: "User not found" }, 401);
+    }
 
-  if (!apiKey) {
-    return c.json({ error: "Invalid API key" }, 401);
+    c.set("userId", user.id);
+    c.set("user", user);
+    await next();
+  } catch {
+    return c.json({ error: "Invalid or expired token" }, 401);
   }
-
-  // Update last used
-  await db
-    .update(apiKeys)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(apiKeys.id, apiKey.id));
-
-  c.set("apiKeyId" as never, apiKey.id);
-  await next();
 });
