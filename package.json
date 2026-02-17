@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "api": "npm run dev --workspace=@relay/api",
     "dashboard": "npm run dev --workspace=@relay/dashboard"
   },
   "devDependencies": {

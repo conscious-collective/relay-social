@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { db, sqlite } from "../db/index.js";
-import { media } from "../db/schema.js";
+import { db, sqlite } from "../../src/db/index.js";
+import { media } from "../../src/db/schema.js";
 import { nanoid } from "nanoid";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
