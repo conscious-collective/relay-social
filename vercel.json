@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build --workspace=@relay/dashboard",
-  "outputDirectory": ".next",
+  "buildCommand": "cd packages/dashboard && npm run build",
+  "outputDirectory": "packages/dashboard/.next",
   "installCommand": "npm install",
   "framework": "nextjs",
   "git": {
@@ -8,11 +8,5 @@
       "main": true,
       "develop": false
     }
-  },
-  "github": {
-    "enabled": false,
-    "autoAlias": false,
-    "silent": true,
-    "autoJobCancelation": true
   }
 }
