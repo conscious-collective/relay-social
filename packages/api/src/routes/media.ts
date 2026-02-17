@@ -1,6 +1,5 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
-import { db } from "../db/index.js";
+import { db, sqlite } from "../db/index.js";
 import { media } from "../db/schema.js";
 import { nanoid } from "nanoid";
 import { writeFile, mkdir, unlink } from "fs/promises";
@@ -9,14 +8,33 @@ import { join } from "path";
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 const app = new Hono();
 
-// List media
+const getUserId = (c: any) => c.get("userId");
+
+// List user's media
 app.get("/", async (c) => {
-  const results = await db.select().from(media).limit(100);
+  const userId = getUserId(c);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  
+  const results = sqlite.prepare(`
+    SELECT id, filename, url, mime_type, size_bytes, width, height, created_at
+    FROM media 
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 100
+  `).all(userId);
+
   return c.json({ media: results });
 });
 
 // Upload media
 app.post("/upload", async (c) => {
+  const userId = getUserId(c);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const body = await c.req.parseBody();
   const file = body.file;
 
@@ -36,32 +54,42 @@ app.post("/upload", async (c) => {
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.API_PORT || 3001}`;
   const url = `${baseUrl}/uploads/${filename}`;
 
-  const [item] = await db
-    .insert(media)
-    .values({
+  sqlite.prepare(`
+    INSERT INTO media (id, user_id, filename, url, mime_type, size_bytes)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, userId, filename, url, file.type || "application/octet-stream", buffer.byteLength);
+
+  return c.json({ 
+    media: {
       id,
       filename,
       url,
       mimeType: file.type || "application/octet-stream",
       sizeBytes: buffer.byteLength,
-    })
-    .returning();
-
-  return c.json({ media: item }, 201);
+    }
+  }, 201);
 });
 
 // Delete media
 app.delete("/:id", async (c) => {
+  const userId = getUserId(c);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const id = c.req.param("id");
-  const [item] = await db.select().from(media).where(eq(media.id, id)).limit(1);
-  if (!item) return c.json({ error: "Media not found" }, 404);
+  
+  const item = sqlite.prepare("SELECT * FROM media WHERE id = ? AND user_id = ?").get(id, userId);
+  if (!item) {
+    return c.json({ error: "Media not found" }, 404);
+  }
 
   // Delete file
   try {
-    await unlink(join(UPLOAD_DIR, item.filename));
+    await unlink(join(UPLOAD_DIR, (item as any).filename));
   } catch {}
 
-  await db.delete(media).where(eq(media.id, id));
+  sqlite.prepare("DELETE FROM media WHERE id = ?").run(id);
   return c.json({ deleted: true });
 });
 
