@@ -1,4 +1,8 @@
 {
+  "buildCommand": "npm run build --workspace=@relay/dashboard",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
   "git": {
     "deploymentEnabled": {
       "main": true,
