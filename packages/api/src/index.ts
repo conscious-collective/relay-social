@@ -8,6 +8,7 @@ import postsRouter from "./routes/posts.js";
 import accountsRouter from "./routes/accounts.js";
 import mediaRouter from "./routes/media.js";
 import analyticsRouter from "./routes/analytics.js";
+import authRouter from "./routes/auth.js";
 import { db, sqlite } from "./db/index.js";
 import { apiKeys } from "./db/schema.js";
 import { nanoid } from "nanoid";
@@ -35,6 +36,12 @@ app.get("/", (c) =>
 app.get("/api", (c) =>
   c.json({
     endpoints: {
+      "POST /api/auth/signup": "Create account (no auth required)",
+      "POST /api/auth/login": "Login (no auth required)",
+      "GET /api/auth/me": "Get current user",
+      "GET /api/auth/keys": "List API keys",
+      "POST /api/auth/keys": "Create API key",
+      "DELETE /api/auth/keys/:id": "Delete API key",
       "GET /api/accounts": "List connected accounts",
       "POST /api/accounts": "Add account",
       "DELETE /api/accounts/:id": "Remove account",
@@ -54,6 +61,9 @@ app.get("/api", (c) =>
   })
 );
 
+// Auth routes (no auth required)
+app.route("/api/auth", authRouter);
+
 // Protected API routes
 app.use("/api/*", authMiddleware);
 app.route("/api/posts", postsRouter);
@@ -65,8 +75,19 @@ app.route("/api/analytics", analyticsRouter);
 async function bootstrap() {
   // Create tables using raw SQL (simple for SQLite)
   sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      tier TEXT NOT NULL DEFAULT 'free',
+      stripe_customer_id TEXT,
+      dodo_customer_id TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS api_keys (
       id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),
       name TEXT NOT NULL,
       key TEXT NOT NULL UNIQUE,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
@@ -74,6 +95,7 @@ async function bootstrap() {
     );
     CREATE TABLE IF NOT EXISTS accounts (
       id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),
       platform TEXT NOT NULL,
       platform_id TEXT NOT NULL,
       name TEXT NOT NULL,
@@ -102,6 +124,7 @@ async function bootstrap() {
     );
     CREATE TABLE IF NOT EXISTS media (
       id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),
       filename TEXT NOT NULL,
       url TEXT NOT NULL,
       mime_type TEXT NOT NULL,
