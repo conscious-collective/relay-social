@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { analytics, posts, accounts } from "../db/schema.js";
+import { db } from "../../src/db/index.js";
+import { analytics, posts, accounts } from "../../src/db/schema.js";
 
 const app = new Hono();
 
