@@ -1,101 +1,169 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
+import { useApi, useAuth } from "@/lib/auth";
 
 interface Account {
   id: string;
   platform: string;
   name: string;
   handle: string;
-  avatarUrl: string | null;
-  createdAt: string;
 }
 
-const platformEmoji: Record<string, string> = {
-  instagram: "📸",
-  twitter: "🐦",
-  facebook: "👤",
-  tiktok: "🎵",
-  linkedin: "💼",
-};
-
 export default function AccountsPage() {
+  const api = useApi();
+  const { loading: authLoading } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showConnect, setShowConnect] = useState(false);
+  const [accessToken, setAccessToken] = useState("");
+  const [igUsername, setIgUsername] = useState("");
+  const [error, setError] = useState("");
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
-    fetchAccounts();
-  }, []);
+    if (!authLoading) loadAccounts();
+  }, [authLoading]);
 
-  async function fetchAccounts() {
+  const loadAccounts = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/accounts`, {
-        headers: { Authorization: `Bearer ${API_KEY}` },
-      });
-      const data = await res.json();
+      const data = await api("/api/accounts");
       setAccounts(data.accounts || []);
-    } catch (e) {
-      console.error("Failed to fetch accounts:", e);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function deleteAccount(id: string) {
+  const connectInstagram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setConnecting(true);
+    try {
+      await api("/api/accounts/connect/instagram", {
+        method: "POST",
+        body: JSON.stringify({
+          access_token: accessToken,
+          instagram_username: igUsername,
+        }),
+      });
+      setAccessToken("");
+      setIgUsername("");
+      setShowConnect(false);
+      loadAccounts();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const disconnectAccount = async (id: string) => {
     if (!confirm("Disconnect this account?")) return;
     try {
-      await fetch(`${API_URL}/api/accounts/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${API_KEY}` },
-      });
-      fetchAccounts();
-    } catch (e) {
-      console.error("Failed to delete account:", e);
+      await api(`/api/accounts/${id}`, { method: "DELETE" });
+      loadAccounts();
+    } catch (err: any) {
+      setError(err.message);
     }
-  }
+  };
+
+  if (loading || authLoading) return <div>Loading...</div>;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Accounts</h1>
-        <p className="text-sm text-zinc-500">OAuth coming soon — use API for now</p>
+        <h1 className="text-3xl font-bold">Connected Accounts</h1>
+        <button
+          onClick={() => setShowConnect(!showConnect)}
+          className="bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-zinc-200"
+        >
+          {showConnect ? "Cancel" : "Connect Account"}
+        </button>
       </div>
 
-      {loading ? (
-        <p className="text-zinc-500">Loading...</p>
-      ) : accounts.length === 0 ? (
-        <div className="text-zinc-500 border border-zinc-800 rounded-lg p-12 text-center">
-          <p className="text-lg">No accounts connected</p>
-          <p className="text-sm mt-1">Use the API to connect accounts</p>
-          <pre className="mt-4 text-xs bg-zinc-900 p-4 rounded-lg text-left max-w-lg mx-auto overflow-x-auto">
-{`curl -X POST /api/accounts \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{"platform":"instagram","name":"My Brand","handle":"@mybrand","access_token":"..."}'`}
-          </pre>
+      {error && (
+        <div className="bg-red-900/30 border border-red-800 text-red-400 px-4 py-2 rounded-lg mb-4">
+          {error}
+        </div>
+      )}
+
+      {showConnect && (
+        <form onSubmit={connectInstagram} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold mb-4">Connect Instagram</h3>
+          <div className="mb-4">
+            <label className="block text-sm text-zinc-400 mb-1">Instagram Username</label>
+            <input
+              type="text"
+              value={igUsername}
+              onChange={(e) => setIgUsername(e.target.value)}
+              placeholder="your_username"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm text-zinc-400 mb-1">Access Token</label>
+            <input
+              type="text"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="Paste your Instagram access token"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 font-mono text-sm"
+              required
+            />
+            <p className="text-xs text-zinc-500 mt-1">
+              Get your token from{" "}
+              <a
+                href="https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Meta for Developers
+              </a>
+            </p>
+          </div>
+          <button
+            type="submit"
+            disabled={connecting}
+            className="bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50"
+          >
+            {connecting ? "Connecting..." : "Connect"}
+          </button>
+        </form>
+      )}
+
+      {accounts.length === 0 ? (
+        <div className="text-center py-12 border border-zinc-800 rounded-lg">
+          <p className="text-zinc-400 mb-4">No accounts connected yet</p>
+          <button
+            onClick={() => setShowConnect(true)}
+            className="text-white underline"
+          >
+            Connect your first account
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
           {accounts.map((account) => (
             <div
               key={account.id}
-              className="border border-zinc-800 rounded-lg p-5 flex items-center justify-between"
+              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex items-center justify-between"
             >
-              <div className="flex items-center gap-4">
-                <span className="text-3xl">
-                  {platformEmoji[account.platform] || "🌐"}
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">
+                  {account.platform === "instagram" ? "📷" : "📱"}
                 </span>
                 <div>
-                  <p className="font-semibold">{account.name}</p>
-                  <p className="text-sm text-zinc-400">@{account.handle}</p>
-                  <p className="text-xs text-zinc-600 mt-1">{account.platform} · {account.id}</p>
+                  <p className="font-medium">@{account.name}</p>
+                  <p className="text-sm text-zinc-400">{account.platform}</p>
                 </div>
               </div>
               <button
-                onClick={() => deleteAccount(account.id)}
-                className="text-zinc-500 hover:text-red-400 text-sm"
+                onClick={() => disconnectAccount(account.id)}
+                className="text-red-400 hover:text-red-300 text-sm"
               >
                 Disconnect
               </button>
