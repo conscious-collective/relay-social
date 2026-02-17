@@ -98,7 +98,7 @@ auth.get("/me", async (c) => {
   }
 
   try {
-    const payload = await verifyToken(token, JWT_SECRET);
+    const payload = await verifyToken(token);
     const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
     
     if (!user) {
@@ -126,7 +126,7 @@ auth.post("/keys", async (c) => {
   }
 
   try {
-    const payload = await verifyToken(token, JWT_SECRET);
+    const payload = await verifyToken(token);
     const { name } = await c.req.json();
     
     const apiKeyId = generateId(16);
@@ -153,7 +153,7 @@ auth.get("/keys", async (c) => {
   }
 
   try {
-    const payload = await verifyToken(token, JWT_SECRET);
+    const payload = await verifyToken(token);
     const keys = await db.select().from(apiKeys).where(eq(apiKeys.userId, payload.userId));
     return c.json({ keys });
   } catch {
@@ -169,7 +169,7 @@ auth.delete("/keys/:id", async (c) => {
   }
 
   try {
-    const payload = await verifyToken(token, JWT_SECRET);
+    const payload = await verifyToken(token);
     const keyId = c.req.param("id");
     
     await db.delete(apiKeys).where(and(
