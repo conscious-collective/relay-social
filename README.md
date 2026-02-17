@@ -4,12 +4,6 @@
 
 API-first social media management. Built for AI agents, intuitive enough for humans. A lean Buffer alternative designed by [Conscious Collective](https://github.com/conscious-collective).
 
-## Philosophy
-
-- **Machines first, humans second** — every feature is an API endpoint before it's a UI button
-- **Lean and mean** — no bloat, no enterprise fluff
-- **Ship fast** — internal tool first, product second
-- **20x mindset** — build it for ourselves, then shove it down other builders' throats
 
 ## Features (MVP)
 
