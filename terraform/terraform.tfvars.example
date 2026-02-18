@@ -1,0 +1,6 @@
+cloudflare_api_token  = "your-cloudflare-api-token"
+cloudflare_account_id = "your-cloudflare-account-id"
+database_url          = "postgresql://..."
+jwt_secret            = "change-me-in-production"
+meta_app_id           = ""
+meta_app_secret       = ""

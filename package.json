@@ -1,15 +1,37 @@
 {
   "name": "relay-social",
+  "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@10.9.3",
-  "workspaces": ["packages/*"],
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "api": "npm run dev --workspace=@relay/api",
-    "dashboard": "npm run dev --workspace=@relay/dashboard"
+    "dev": "next dev",
+    "build": "next build",
+    "build:cloudflare": "npx @cloudflare/next-on-pages",
+    "preview": "wrangler pages dev",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "drizzle-orm": "^0.36.4",
+    "jose": "^5.9.3",
+    "next": "15.1.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "turbo": "^2"
+    "@cloudflare/next-on-pages": "^1.13.7",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.28.1",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.7",
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4",
+    "typescript": "^5",
+    "wrangler": "^3"
   }
 }
