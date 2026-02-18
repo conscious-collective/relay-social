@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "@scalar/nextjs-api-reference": "^0.9.19",
     "drizzle-orm": "^0.36.4",
     "jose": "^5.9.3",
     "next": "15.1.7",
