@@ -1,14 +1,37 @@
+# dependencies
 node_modules/
-.next/
-dist/
-*.db
-*.db-journal
-*.db-wal
-.env
-.env.local
-uploads/
-.turbo/
+
+# next.js
+/.next/
+/out/
+
+# cloudflare
+.vercel/
+
+# production
+/build
+
+# misc
 .DS_Store
-*.db-shm
-*.db-shm
-.vercel
+*.pem
+
+# debug
+npm-debug.log*
+
+# local env files
+.env*.local
+.env
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# drizzle
+drizzle/
+
+# terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
