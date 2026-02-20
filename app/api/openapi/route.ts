@@ -116,6 +116,98 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      "/api/auth/refresh": {
+        post: {
+          summary: "Refresh access token",
+          description: "Programmatically refresh an expired or expiring access token for a connected account",
+          tags: ["Auth"],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["accountId"],
+                  properties: {
+                    accountId: {
+                      type: "string",
+                      description: "ID of the account to refresh",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Token refreshed successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      accountId: { type: "string" },
+                      platform: { type: "string" },
+                      expiresAt: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Invalid request or no refresh token available" },
+            401: { description: "Unauthorized" },
+            404: { description: "Account not found" },
+            500: { description: "Refresh failed" },
+          },
+        },
+      },
+      "/api/auth/status": {
+        get: {
+          summary: "Check account status",
+          description: "Check if a connected account's access token is still valid",
+          tags: ["Auth"],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: "accountId",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+              description: "ID of the account to check",
+            },
+          ],
+          responses: {
+            200: {
+              description: "Account status",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      accountId: { type: "string" },
+                      platform: { type: "string" },
+                      handle: { type: "string" },
+                      status: {
+                        type: "string",
+                        enum: ["active", "expired", "expiring_soon", "unknown"],
+                      },
+                      expiresAt: { type: "string", format: "date-time", nullable: true },
+                      daysUntilExpiry: { type: "number", nullable: true },
+                      needsRefresh: { type: "boolean" },
+                      hasRefreshToken: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: "Missing accountId parameter" },
+            401: { description: "Unauthorized" },
+            404: { description: "Account not found" },
+          },
+        },
+      },
       "/api/accounts": {
         get: {
           summary: "List connected accounts",
