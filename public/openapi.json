@@ -1,0 +1,777 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Relay Social API",
+    "description": "Agent-native social media scheduling API. Schedule posts, manage accounts, and track analytics via REST.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Bodmashverse",
+      "url": "https://relay-social.pages.dev"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://relay-social.pages.dev",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentication and user management"
+    },
+    {
+      "name": "Accounts",
+      "description": "Social media account management"
+    },
+    {
+      "name": "Posts",
+      "description": "Post creation and scheduling"
+    },
+    {
+      "name": "Analytics",
+      "description": "Analytics and statistics"
+    }
+  ],
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Create a new user account",
+        "description": "Register a new user and receive JWT token + initial API key",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "you@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 6,
+                    "example": "yourpassword"
+                  }
+                }
+              },
+              "example": {
+                "email": "you@example.com",
+                "password": "yourpassword"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "user": {
+                    "id": "user_abc123",
+                    "email": "you@example.com",
+                    "tier": "free",
+                    "createdAt": "2026-02-18T10:00:00Z"
+                  },
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "apiKey": {
+                    "id": "key_xyz789",
+                    "name": "Default",
+                    "key": "rs_live_abc123...",
+                    "createdAt": "2026-02-18T10:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or email already exists",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Email already exists"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Authenticate user",
+        "description": "Login with email and password to receive JWT token and API keys",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "you@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "yourpassword"
+                  }
+                }
+              },
+              "example": {
+                "email": "you@example.com",
+                "password": "yourpassword"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "example": {
+                  "user": {
+                    "id": "user_abc123",
+                    "email": "you@example.com",
+                    "tier": "free",
+                    "createdAt": "2026-02-18T10:00:00Z"
+                  },
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "apiKeys": [
+                    {
+                      "id": "key_xyz789",
+                      "name": "Default",
+                      "createdAt": "2026-02-18T10:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid email or password"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get current user",
+        "description": "Retrieve current user info, API keys, and connected accounts",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "User data retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "user": {
+                    "id": "user_abc123",
+                    "email": "you@example.com",
+                    "tier": "free",
+                    "createdAt": "2026-02-18T10:00:00Z"
+                  },
+                  "apiKeys": [
+                    {
+                      "id": "key_xyz789",
+                      "name": "Default",
+                      "createdAt": "2026-02-18T10:00:00Z"
+                    }
+                  ],
+                  "accounts": [
+                    {
+                      "id": "acc_instagram_123",
+                      "platform": "instagram",
+                      "username": "mybusiness",
+                      "connectedAt": "2026-02-18T10:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/keys": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "List API keys",
+        "description": "Get all API keys for the current user",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "API keys retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "keys": [
+                    {
+                      "id": "key_xyz789",
+                      "name": "Default",
+                      "createdAt": "2026-02-18T10:00:00Z"
+                    },
+                    {
+                      "id": "key_def456",
+                      "name": "Production",
+                      "createdAt": "2026-02-17T10:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Create API key",
+        "description": "Generate a new API key",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "My New Key"
+                  }
+                }
+              },
+              "example": {
+                "name": "My New Key"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "key_new123",
+                  "name": "My New Key",
+                  "key": "rs_live_abc123def456...",
+                  "createdAt": "2026-02-18T10:00:00Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/auth/keys/{id}": {
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Delete API key",
+        "description": "Delete an existing API key",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "key_xyz789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        }
+      }
+    },
+    "/api/accounts": {
+      "get": {
+        "tags": ["Accounts"],
+        "summary": "List connected accounts",
+        "description": "Get all social media accounts connected to the user",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Accounts retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "accounts": [
+                    {
+                      "id": "acc_instagram_123",
+                      "platform": "instagram",
+                      "username": "mybusiness",
+                      "connectedAt": "2026-02-18T10:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/accounts/connect/instagram": {
+      "post": {
+        "tags": ["Accounts"],
+        "summary": "Connect Instagram account",
+        "description": "Connect an Instagram account using an access token",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["access_token", "instagram_username"],
+                "properties": {
+                  "access_token": {
+                    "type": "string",
+                    "example": "IGQV..."
+                  },
+                  "instagram_username": {
+                    "type": "string",
+                    "example": "mybusiness"
+                  }
+                }
+              },
+              "example": {
+                "access_token": "IGQV...",
+                "instagram_username": "mybusiness"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Instagram account connected",
+            "content": {
+              "application/json": {
+                "example": {
+                  "account": {
+                    "id": "acc_instagram_456",
+                    "platform": "instagram",
+                    "username": "mybusiness",
+                    "connectedAt": "2026-02-18T10:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token or username"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/accounts/{id}": {
+      "delete": {
+        "tags": ["Accounts"],
+        "summary": "Disconnect account",
+        "description": "Remove a connected social media account",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "acc_instagram_123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account disconnected",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Account not found"
+          }
+        }
+      }
+    },
+    "/api/posts": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "List posts",
+        "description": "Get all posts (published, scheduled, and drafts)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "example": 50
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "example": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Posts retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "posts": [
+                    {
+                      "id": "post_abc123",
+                      "account_id": "acc_instagram_123",
+                      "content": "Hello world!",
+                      "status": "scheduled",
+                      "scheduled_at": "2026-02-20T09:00:00Z",
+                      "createdAt": "2026-02-18T10:00:00Z"
+                    }
+                  ],
+                  "count": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Create post",
+        "description": "Create a new post. Can be scheduled for future publication.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["account_id", "content"],
+                "properties": {
+                  "account_id": {
+                    "type": "string",
+                    "example": "acc_instagram_123"
+                  },
+                  "content": {
+                    "type": "string",
+                    "example": "Hello world!"
+                  },
+                  "scheduled_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-02-20T09:00:00Z"
+                  }
+                }
+              },
+              "example": {
+                "account_id": "acc_instagram_123",
+                "content": "Hello world!",
+                "scheduled_at": "2026-02-20T09:00:00Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Post created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "post": {
+                    "id": "post_new789",
+                    "account_id": "acc_instagram_123",
+                    "content": "Hello world!",
+                    "status": "scheduled",
+                    "scheduled_at": "2026-02-20T09:00:00Z",
+                    "createdAt": "2026-02-18T10:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/posts/{id}": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Get post",
+        "description": "Get a single post by ID",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "post_abc123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "post": {
+                    "id": "post_abc123",
+                    "account_id": "acc_instagram_123",
+                    "content": "Hello world!",
+                    "status": "scheduled",
+                    "scheduled_at": "2026-02-20T09:00:00Z",
+                    "createdAt": "2026-02-18T10:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Post not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Posts"],
+        "summary": "Update post",
+        "description": "Update an existing post's content or scheduled time",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "post_abc123"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "example": "Updated content"
+                  },
+                  "scheduled_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-02-21T10:00:00Z"
+                  }
+                }
+              },
+              "example": {
+                "content": "Updated content",
+                "scheduled_at": "2026-02-21T10:00:00Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "post": {
+                    "id": "post_abc123",
+                    "account_id": "acc_instagram_123",
+                    "content": "Updated content",
+                    "status": "scheduled",
+                    "scheduled_at": "2026-02-21T10:00:00Z",
+                    "createdAt": "2026-02-18T10:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Post not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Posts"],
+        "summary": "Delete post",
+        "description": "Delete a post",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "post_abc123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Post not found"
+          }
+        }
+      }
+    },
+    "/api/analytics": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get analytics",
+        "description": "Get aggregated analytics across all connected accounts",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Analytics retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "accounts": {
+                    "total": 2,
+                    "instagram": 2
+                  },
+                  "posts": {
+                    "total": 50,
+                    "published": 30,
+                    "scheduled": 15,
+                    "drafts": 3,
+                    "failed": 2
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token received from /api/auth/login or /api/auth/signup"
+      }
+    }
+  }
+}

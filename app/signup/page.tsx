@@ -19,7 +19,7 @@ export default function Signup() {
     setLoading(true);
     try {
       await signup(email, password);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Signup failed");
     } finally {
