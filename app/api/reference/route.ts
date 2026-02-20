@@ -1,6 +1,8 @@
-import { ApiReference } from "@scalar/nextjs-api-reference";
+export const runtime = 'edge';
+import { NextRequest, NextResponse } from "next/server";
 
-export const GET = ApiReference({
-  url: "/openapi.json",
-  pageTitle: "Relay Social API Reference",
-});
+export async function GET(req: NextRequest) {
+  // Redirect to OpenAPI spec
+  const url = new URL(req.url);
+  return NextResponse.redirect(new URL("/openapi.json", url.origin));
+}

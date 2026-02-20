@@ -1,12 +1,12 @@
 /**
  * Webhook Service
  * Handles outbound webhook delivery for events
+ * Cloudflare Workers compatible - uses Web Crypto API
  */
 
 import { db } from "@/app/db";
 import { webhooks, webhookDeliveries } from "@/app/db/schema";
 import { eq } from "drizzle-orm";
-import crypto from "crypto";
 
 export type WebhookEvent =
   | "post.published"
@@ -80,7 +80,7 @@ async function deliverWebhook(
   // Attempt delivery
   try {
     const body = JSON.stringify(payload);
-    const signature = generateSignature(body, secret);
+    const signature = await generateSignature(body, secret);
 
     const response = await fetch(url, {
       method: "POST",
@@ -125,23 +125,51 @@ async function deliverWebhook(
 }
 
 /**
- * Generate HMAC signature for webhook payload
+ * Generate HMAC signature using Web Crypto API (Cloudflare compatible)
  */
-function generateSignature(body: string, secret: string): string {
-  return crypto.createHmac("sha256", secret).update(body).digest("hex");
+async function generateSignature(body: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
+  return arrayBufferToHex(signature);
 }
 
 /**
  * Verify webhook signature (for inbound webhooks from other services)
  */
-export function verifySignature(
+export async function verifySignature(
   body: string,
   signature: string,
   secret: string
-): boolean {
-  const expectedSignature = generateSignature(body, secret);
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+): Promise<boolean> {
+  const expectedSignature = await generateSignature(body, secret);
+  // Constant-time comparison
+  return timingSafeEqual(signature, expectedSignature);
+}
+
+/**
+ * Timing-safe string comparison
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
+ * Convert ArrayBuffer to hex string
+ */
+function arrayBufferToHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
