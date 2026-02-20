@@ -2,7 +2,6 @@ export const runtime = 'edge';
 import { db } from "@/app/db";
 import { webhooks } from "@/app/db/schema";
 import { eq } from "drizzle-orm";
-import crypto from "crypto";
 
 // GET /api/webhooks - List all webhooks for user
 // POST /api/webhooks - Create a new webhook
@@ -95,8 +94,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate secret for HMAC verification
-    const secret = crypto.randomBytes(32).toString("hex");
+    // Generate secret using Web Crypto API (Cloudflare compatible)
+    const secret = await generateRandomSecret();
 
     const [webhook] = await db
       .insert(webhooks)
@@ -130,4 +129,13 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Web Crypto API helper for Cloudflare compatibility
+async function generateRandomSecret(): Promise<string> {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
