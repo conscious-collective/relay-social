@@ -396,6 +396,128 @@ export async function GET(req: NextRequest) {
         },
       },
     },
+    "/api/webhooks": {
+      get: {
+        summary: "List webhooks",
+        description: "Get all webhooks configured for your account",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "userId",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          200: { description: "List of webhooks" },
+          401: { description: "Unauthorized" },
+        },
+      },
+      post: {
+        summary: "Create webhook",
+        description: "Register a new webhook endpoint for events",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["url", "events", "userId"],
+                properties: {
+                  url: { type: "string", format: "uri" },
+                  events: {
+                    type: "array",
+                    items: { type: "string", enum: ["post.published", "post.failed", "account.connected", "account.expired"] },
+                  },
+                  userId: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Webhook created" },
+          400: { description: "Invalid request" },
+          401: { description: "Unauthorized" },
+        },
+      },
+    },
+    "/api/webhooks/{id}": {
+      get: {
+        summary: "Get webhook",
+        description: "Get details of a specific webhook",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          200: { description: "Webhook details" },
+          401: { description: "Unauthorized" },
+          404: { description: "Not found" },
+        },
+      },
+      put: {
+        summary: "Update webhook",
+        description: "Toggle webhook enabled/disabled",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  enabled: { type: "boolean" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Webhook updated" },
+          401: { description: "Unauthorized" },
+          404: { description: "Not found" },
+        },
+      },
+      delete: {
+        summary: "Delete webhook",
+        description: "Remove a webhook endpoint",
+        tags: ["Webhooks"],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          200: { description: "Webhook deleted" },
+          401: { description: "Unauthorized" },
+          404: { description: "Not found" },
+        },
+      },
+    },
     components: {
       securitySchemes: {
         bearerAuth: {

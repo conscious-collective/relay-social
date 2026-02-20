@@ -5,6 +5,7 @@ import { db } from "@/app/db";
 import { posts, accounts } from "@/app/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth-helpers";
+import { triggerWebhook } from "@/lib/webhooks";
 
 /**
  * POST /api/posts/[id]/publish
@@ -92,6 +93,15 @@ export async function POST(
       })
       .where(eq(posts.id, id));
 
+    // Trigger webhook for successful publish
+    triggerWebhook(user.userId, "post.published", {
+      postId: id,
+      platformPostId: result.postId,
+      accountId: account.id,
+      platform: account.platform,
+      content: post.content,
+    }).catch(console.error);
+
     return NextResponse.json({
       success: true,
       postId: result.postId,
@@ -109,6 +119,15 @@ export async function POST(
         updatedAt: new Date(),
       })
       .where(eq(posts.id, id));
+
+    // Trigger webhook for failed publish
+    triggerWebhook(user.userId, "post.failed", {
+      postId: id,
+      accountId: account.id,
+      platform: account.platform,
+      content: post.content,
+      error: errorMessage,
+    }).catch(console.error);
 
     return NextResponse.json(
       { error: "Publish failed", details: errorMessage },
