@@ -73,3 +73,31 @@ export const analytics = pgTable("analytics", {
   clicks: integer("clicks").default(0),
   fetchedAt: timestamp("fetched_at").notNull().defaultNow(),
 });
+
+export const webhooks = pgTable("webhooks", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  events: jsonb("events").$type<string[]>().notNull(), // ["post.published", "post.failed", etc.]
+  secret: text("secret").notNull(), // For HMAC signature verification
+  enabled: integer("enabled").notNull().default(1), // SQLite: 1=true, 0=false
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: text("id").primaryKey(),
+  webhookId: text("webhook_id")
+    .notNull()
+    .references(() => webhooks.id, { onDelete: "cascade" }),
+  event: text("event").notNull(), // e.g., "post.published"
+  payload: jsonb("payload").notNull(),
+  status: text("status").notNull().default("pending"), // pending | delivered | failed
+  attempts: integer("attempts").notNull().default(0),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  deliveredAt: timestamp("delivered_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

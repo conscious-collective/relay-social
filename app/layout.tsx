@@ -11,6 +11,7 @@ function NavBar() {
 
   if (loading) return null;
   if (pathname === "/login" || pathname === "/signup") return null;
+  if (pathname === "/") return null; // Homepage has its own nav
 
   return (
     <nav className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
@@ -19,10 +20,11 @@ function NavBar() {
         <span className="font-bold text-lg">Relay Social</span>
       </div>
       <div className="flex gap-6 text-sm text-zinc-400">
-        <Link href="/" className={`hover:text-white ${pathname === "/" ? "text-white" : ""}`}>Dashboard</Link>
+        <Link href="/dashboard" className={`hover:text-white ${pathname === "/dashboard" ? "text-white" : ""}`}>Dashboard</Link>
         <Link href="/posts" className={`hover:text-white ${pathname === "/posts" ? "text-white" : ""}`}>Posts</Link>
         <Link href="/accounts" className={`hover:text-white ${pathname === "/accounts" ? "text-white" : ""}`}>Accounts</Link>
         <Link href="/profile" className={`hover:text-white ${pathname === "/profile" ? "text-white" : ""}`}>Profile</Link>
+        <Link href="/api/reference" className={`hover:text-white ${pathname === "/api/reference" ? "text-white" : ""}`}>API Docs</Link>
       </div>
       <div className="flex items-center gap-4">
         {user ? (
@@ -44,6 +46,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
 
+  const PUBLIC_ROUTES = ["/", "/api/reference"];
+  const AUTH_ROUTES = ["/login", "/signup"];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-950">
@@ -52,8 +57,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (pathname === "/login" || pathname === "/signup") return <>{children}</>;
+  // If it's a public route or auth route, don't guard
+  if (PUBLIC_ROUTES.includes(pathname) || AUTH_ROUTES.includes(pathname)) {
+    return <>{children}</>;
+  }
 
+  // If not authed, redirect to login
   if (!user) {
     if (typeof window !== "undefined") window.location.href = "/login";
     return null;
