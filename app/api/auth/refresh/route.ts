@@ -1,5 +1,5 @@
 export const runtime = 'edge';
-import { db } from "@/app/db";
+import { NextRequest, NextResponse } from "next/server";
 import { accounts } from "@/app/db/schema";
 import { eq } from "drizzle-orm";
 
