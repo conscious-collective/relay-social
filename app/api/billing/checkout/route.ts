@@ -4,7 +4,7 @@ import { db } from "@/app/db";
 import { users } from "@/app/db/schema";
 import { eq } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth-helpers";
-import { PLANS } from "../plans/route";
+import { PLANS } from "@/lib/plans";
 
 // Initialize DoDo Payments client
 function getDodoClient() {
@@ -66,8 +66,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Create checkout session for Pro plan
-    // Note: In production, you'd create a product in DoDo dashboard first
-    // For now, we'll create a checkout with the plan info in metadata
     const checkoutSession = await dodo.checkoutSessions.create({
       customer_id: customerId,
       product_cart: [
@@ -108,7 +106,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Handle DoDo webhook
   const { searchParams } = new URL(req.url);
   const checkoutId = searchParams.get("checkout_id");
   const action = searchParams.get("action");

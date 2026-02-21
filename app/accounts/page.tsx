@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useApi, useAuth } from "@/lib/auth";
-import { useSearchParams } from "next/navigation";
 
 interface Account {
   id: string;
@@ -13,15 +12,13 @@ interface Account {
 
 export default function AccountsPage() {
   const api = useApi();
-  const { user, loading: authLoading } = useAuth();
-  const searchParams = useSearchParams();
+  const { loading: authLoading } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConnect, setShowConnect] = useState(false);
   const [accessToken, setAccessToken] = useState("");
   const [igUsername, setIgUsername] = useState("");
-  const [error, setError] = useState(searchParams.get("error") || "");
-  const [success, setSuccess] = useState(searchParams.get("success") || "");
+  const [error, setError] = useState("");
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
@@ -87,30 +84,9 @@ export default function AccountsPage() {
         <div className="bg-red-900/30 border border-red-800 text-red-400 px-4 py-2 rounded-lg mb-4">{error}</div>
       )}
 
-      {success && (
-        <div className="bg-green-900/30 border border-green-800 text-green-400 px-4 py-2 rounded-lg mb-4">Instagram connected successfully!</div>
-      )}
-
       {showConnect && (
-        <div className="mb-6">
-          {/* OAuth Connect Button */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-4">
-            <h3 className="font-semibold mb-4">Quick Connect</h3>
-            <p className="text-sm text-zinc-400 mb-4">Connect with Instagram via OAuth (recommended)</p>
-            {user && (
-              <a
-                href={`/api/auth/connect/instagram?userId=${user.id}`}
-                className="inline-block bg-gradient-to-r from-purple-600 to-pink-500 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90"
-              >
-                Connect with Instagram
-              </a>
-            )}
-          </div>
-
-          {/* Manual Token Form */}
-          <p className="text-sm text-zinc-500 mb-2">Or connect manually with access token:</p>
-          <form onSubmit={connectInstagram} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-            <h3 className="font-semibold mb-4">Manual Connect</h3>
+        <form onSubmit={connectInstagram} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold mb-4">Connect Instagram</h3>
           <div className="mb-4">
             <label className="block text-sm text-zinc-400 mb-1">Instagram Username</label>
             <input
