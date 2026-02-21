@@ -6,12 +6,18 @@ import { eq } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth-helpers";
 import { PLANS } from "../plans/route";
 
+// Initialize DoDo Payments client
+function getDodoClient() {
+  const DodoPayments = require("dodopayments");
+  return new DodoPayments({
+    bearerToken: process.env.DODO_PAYMENTS_API_KEY,
+    environment: process.env.NODE_ENV === "production" ? "live_mode" : "test_mode",
+  });
+}
+
 /**
  * POST /api/billing/checkout
  * Creates a checkout session for upgrading to Pro
- * 
- * For MVP: Returns a mock checkout URL
- * Later: Integrate with Stripe/DoDo
  */
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req);
@@ -30,30 +36,71 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Cannot checkout for free plan" }, { status: 400 });
   }
 
-  // For MVP: Simulate checkout
-  // Later: Create actual Stripe/DoDo checkout session
-  const checkoutId = `checkout_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-  
-  // In production, this would create a real checkout session
-  const checkoutUrl = `/billing/success?checkout_id=${checkoutId}&plan=${planId}`;
+  try {
+    const dodo = getDodoClient();
+    
+    // Get or create customer
+    const [userData] = await db
+      .select({ email: users.email, dodoCustomerId: users.dodoCustomerId })
+      .from(users)
+      .where(eq(users.id, user.userId))
+      .limit(1);
 
-  return NextResponse.json({
-    checkoutId,
-    checkoutUrl,
-    plan: {
-      id: plan.id,
-      name: plan.name,
-      price: plan.price,
-      interval: plan.interval,
-    },
-    // Mock payment link for testing
-    paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL}${checkoutUrl}`,
-  });
+    let customerId = userData?.dodoCustomerId;
+
+    // Create customer if doesn't exist
+    if (!customerId) {
+      const customer = await dodo.customers.create({
+        email: userData?.email,
+        metadata: {
+          user_id: user.userId,
+        },
+      });
+      customerId = customer.customer_id;
+
+      // Save customer ID
+      await db
+        .update(users)
+        .set({ dodoCustomerId: customerId })
+        .where(eq(users.id, user.userId));
+    }
+
+    // Create checkout session for Pro plan
+    // Note: In production, you'd create a product in DoDo dashboard first
+    // For now, we'll create a checkout with the plan info in metadata
+    const checkoutSession = await dodo.checkoutSessions.create({
+      customer_id: customerId,
+      product_cart: [
+        {
+          product_id: process.env.DODO_PRO_PRODUCT_ID || "prod_pro_monthly",
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        user_id: user.userId,
+        plan: "pro",
+        credits: plan.credits,
+      },
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/success?checkout_id={checkout_id}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?cancelled=true`,
+    });
+
+    return NextResponse.json({
+      checkoutId: checkoutSession.session_id,
+      checkoutUrl: checkoutSession.url,
+    });
+  } catch (error: any) {
+    console.error("DoDo checkout error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create checkout" },
+      { status: 500 }
+    );
+  }
 }
 
 /**
  * GET /api/billing/checkout
- * Get checkout status or complete checkout (for MVP mock flow)
+ * Get checkout status or handle webhook
  */
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req);
@@ -61,28 +108,61 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Handle DoDo webhook
   const { searchParams } = new URL(req.url);
   const checkoutId = searchParams.get("checkout_id");
   const action = searchParams.get("action");
 
-  // Complete checkout (MVP mock flow)
+  // Complete checkout (after redirect from DoDo)
   if (action === "complete" && checkoutId) {
-    await db
-      .update(users)
-      .set({ tier: "pro", updatedAt: new Date() })
-      .where(eq(users.id, user.userId));
+    try {
+      const dodo = getDodoClient();
+      
+      // Verify checkout was successful
+      const checkout = await dodo.checkoutSessions.retrieve({
+        checkout_session_id: checkoutId,
+      });
+      
+      if (checkout.status === "completed") {
+        // Get credits from metadata
+        const credits = checkout.metadata?.credits || 1000;
+        
+        // Update user to Pro with credits
+        await db
+          .update(users)
+          .set({ 
+            tier: "pro", 
+            credits: credits,
+            updatedAt: new Date() 
+          })
+          .where(eq(users.id, user.userId));
 
-    return NextResponse.json({
-      success: true,
-      tier: "pro",
-      message: "Upgraded to Pro!",
-    });
+        return NextResponse.json({
+          success: true,
+          tier: "pro",
+          credits,
+          message: "Upgraded to Pro!",
+        });
+      } else {
+        return NextResponse.json(
+          { error: "Checkout not completed" },
+          { status: 400 }
+        );
+      }
+    } catch (error: any) {
+      console.error("Complete checkout error:", error);
+      return NextResponse.json(
+        { error: error.message || "Failed to complete checkout" },
+        { status: 500 }
+      );
+    }
   }
 
   // Get current subscription status
   const [userData] = await db
     .select({
       tier: users.tier,
+      credits: users.credits,
       dodoCustomerId: users.dodoCustomerId,
       updatedAt: users.updatedAt,
     })
@@ -92,6 +172,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     tier: userData?.tier || "free",
+    credits: userData?.credits || 0,
     customerId: userData?.dodoCustomerId,
     currentPeriodEnd: userData?.updatedAt,
   });

@@ -5,6 +5,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   tier: text("tier").notNull().default("free"),
+  credits: integer("credits").notNull().default(0), // Post credits
   dodoCustomerId: text("dodo_customer_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

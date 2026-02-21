@@ -10,10 +10,11 @@ export interface Plan {
   name: string;
   price: number;
   interval: "month" | "year";
+  credits: number;
   features: string[];
   limits: {
     accounts: number;
-    postsPerMonth: number;
+    postsPerWeek: number;
     webhooks: number;
   };
 }
@@ -24,26 +25,28 @@ export const PLANS: Plan[] = [
     name: "Free",
     price: 0,
     interval: "month",
+    credits: 0,
     features: [
       "1 Instagram account",
-      "10 posts per month",
+      "10 posts per week",
       "Basic scheduling",
       "Community support",
     ],
     limits: {
       accounts: 1,
-      postsPerMonth: 10,
+      postsPerWeek: 10,
       webhooks: 2,
     },
   },
   {
     id: "pro",
     name: "Pro",
-    price: 19,
+    price: 5,
     interval: "month",
+    credits: 1000,
     features: [
-      "Unlimited accounts",
-      "Unlimited posts",
+      "Unlimited Instagram accounts",
+      "1000 post credits",
       "Priority support",
       "Advanced analytics",
       "Webhooks",
@@ -51,7 +54,7 @@ export const PLANS: Plan[] = [
     ],
     limits: {
       accounts: -1, // unlimited
-      postsPerMonth: -1, // unlimited
+      postsPerWeek: -1, // unlimited (uses credits)
       webhooks: -1, // unlimited
     },
   },
@@ -61,17 +64,21 @@ export async function GET(req: NextRequest) {
   const user = await getAuthUser(req);
   
   let currentTier = "free";
+  let credits = 0;
+  
   if (user) {
     const [userData] = await db
-      .select({ tier: users.tier })
+      .select({ tier: users.tier, credits: users.credits })
       .from(users)
       .where(eq(users.id, user.userId))
       .limit(1);
     currentTier = userData?.tier || "free";
+    credits = userData?.credits || 0;
   }
 
   return NextResponse.json({
     plans: PLANS,
     currentTier,
+    credits,
   });
 }

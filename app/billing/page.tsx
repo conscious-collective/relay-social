@@ -9,10 +9,11 @@ interface Plan {
   name: string;
   price: number;
   interval: string;
+  credits: number;
   features: string[];
   limits: {
     accounts: number;
-    postsPerMonth: number;
+    postsPerWeek: number;
     webhooks: number;
   };
 }
@@ -23,9 +24,11 @@ export default function BillingPage() {
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentTier, setCurrentTier] = useState("free");
+  const [credits, setCredits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
-  const [success, setSuccess] = useState(searchParams.get("success") === "true");
+  const [error, setError] = useState("");
+  const success = searchParams.get("success") === "true";
 
   useEffect(() => {
     loadPlans();
@@ -36,6 +39,7 @@ export default function BillingPage() {
       const data = await api("/api/billing/plans");
       setPlans(data.plans);
       setCurrentTier(data.currentTier);
+      setCredits(data.credits || 0);
     } catch (err) {
       console.error(err);
     } finally {
@@ -45,16 +49,22 @@ export default function BillingPage() {
 
   const upgradeToPro = async () => {
     setUpgrading(true);
+    setError("");
     try {
       const data = await api("/api/billing/checkout", {
         method: "POST",
         body: JSON.stringify({ planId: "pro" }),
       });
       
-      // For MVP: redirect to mock success page
-      window.location.href = data.paymentUrl;
-    } catch (err) {
-      console.error(err);
+      if (data.checkoutUrl) {
+        // Redirect to DoDo checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        setError("Failed to create checkout");
+        setUpgrading(false);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to start upgrade");
       setUpgrading(false);
     }
   };
@@ -73,12 +83,28 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Current Plan */}
+      {error && (
+        <div className="bg-red-900/30 border border-red-800 text-red-400 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+
+      {/* Current Plan & Credits */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-8">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-zinc-400">Current Plan</p>
             <h2 className="text-2xl font-bold capitalize">{currentTier}</h2>
+            {currentTier === "pro" && credits > 0 && (
+              <p className="text-sm text-green-400 mt-1">
+                {credits} credits remaining
+              </p>
+            )}
+            {currentTier === "free" && (
+              <p className="text-sm text-zinc-400 mt-1">
+                10 posts per week
+              </p>
+            )}
           </div>
           {currentTier === "free" && (
             <button
@@ -86,7 +112,7 @@ export default function BillingPage() {
               disabled={upgrading}
               className="bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50"
             >
-              {upgrading ? "Upgrading..." : "Upgrade to Pro"}
+              {upgrading ? "Processing..." : "Upgrade to Pro"}
             </button>
           )}
           {currentTier === "pro" && (
@@ -117,10 +143,15 @@ export default function BillingPage() {
                 </span>
               )}
             </div>
-            <p className="text-3xl font-bold mb-4">
+            <p className="text-3xl font-bold mb-1">
               ${plan.price}
               <span className="text-sm font-normal text-zinc-400">/{plan.interval}</span>
             </p>
+            {plan.credits > 0 && (
+              <p className="text-sm text-purple-400 mb-4">
+                {plan.credits} post credits
+              </p>
+            )}
             <ul className="space-y-2 text-sm text-zinc-400 mb-6">
               {plan.features.map((feature, i) => (
                 <li key={i}>✓ {feature}</li>
@@ -132,7 +163,7 @@ export default function BillingPage() {
                 disabled={upgrading}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white py-2 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {upgrading ? "Processing..." : "Get Pro"}
+                {upgrading ? "Processing..." : "Get Pro - $5/month"}
               </button>
             )}
           </div>
