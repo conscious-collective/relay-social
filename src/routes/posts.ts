@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { verifyToken, generateId } from '../utils/auth';
-import { posts, accounts } from '../schema';
 
 export const postsRouter = new Hono();
 
@@ -46,7 +45,16 @@ postsRouter.post('/', async (c) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(postId, payload.userId, account_id, content, JSON.stringify(media_urls || []), status, scheduledAt, Date.now(), Date.now());
 
-    return c.json({ id: postId, status }, 201);
+    // If scheduled, add to queue for processing
+    if (scheduledAt && c.env.SCHEDULER_QUEUE) {
+      await c.env.SCHEDULER_QUEUE.send({
+        type: 'publish_post',
+        postId,
+        scheduledAt,
+      });
+    }
+
+    return c.json({ id: postId, status, scheduledAt }, 201);
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
@@ -75,6 +83,15 @@ postsRouter.put('/:id', async (c) => {
     if (scheduled_at !== undefined) {
       updates.push('scheduled_at = ?');
       values.push(scheduled_at ? new Date(scheduled_at).getTime() : null);
+      
+      // If scheduling, add to queue
+      if (scheduled_at && c.env.SCHEDULER_QUEUE) {
+        await c.env.SCHEDULER_QUEUE.send({
+          type: 'publish_post',
+          postId,
+          scheduledAt: new Date(scheduled_at).getTime(),
+        });
+      }
     }
     if (content) {
       updates.push('content = ?');

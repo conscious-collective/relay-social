@@ -3,12 +3,18 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Queue consumer (runs the scheduler)
+[[unsafe.bindings]]
+name = "SCHEDULER_QUEUE"
+queue_name = "relay-social-scheduler"
+type = "queue-consumer"
+
 [env.production]
 vars = { ENVIRONMENT = "production" }
 
-# Cron trigger - runs every minute
-[triggers]
-crons = ["* * * * *"]
+[[queues.producers]]
+binding = "SCHEDULER_QUEUE"
+queue_name = "relay-social-scheduler"
 
 [[d1_databases]]
 binding = "DB"
