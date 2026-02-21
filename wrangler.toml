@@ -1,5 +1,19 @@
 name = "relay-social"
-compatibility_date = "2024-09-23"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-pages_build_output_dir = ".vercel/output/static"
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# Cron trigger - runs every minute
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "relay-social"
+database_id = "your-d1-database-id"
+
+[vars]
+NEXT_PUBLIC_APP_URL = "https://relay-social.yourname.workers.dev"
