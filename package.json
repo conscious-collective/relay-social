@@ -1,0 +1,21 @@
+{
+  "name": "relay-social-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev src/index.ts --local",
+    "deploy": "wrangler deploy src/index.ts",
+    "db:generate": "wrangler d1 execute relay-social --local --command=drizzle-kit generate",
+    "db:push": "wrangler d1 execute relay-social --local --command=drizzle-kit push"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "drizzle-orm": "^0.30.0",
+    "jose": "^5.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "wrangler": "^3.28.0",
+    "drizzle-kit": "^0.20.0"
+  }
+}

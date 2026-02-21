@@ -1,0 +1,25 @@
+name = "relay-social-api"
+version = "0.1.0"
+description = "Relay Social API - Cloudflare Worker with Hono + D1"
+main = "src/index.ts"
+
+[dependencies]
+hono = { version = "4.0.0", features = ["json"] }
+@hono/node-server = "1.11.0"
+drizzle-orm = { version = "0.30.0", features = ["sqlite"] }
+drizzle-kit = "0.20.0"
+@libsql/client = "0.5.0"
+bcrypt = "0.15.0"
+jose = "5.2.0"
+uuid = { version = "9.0.0", features = ["v4"] }
+
+[dev-dependencies]
+wrangler = "3.28.0"
+drizzle-kit = { version = "0.20.0", features = ["libsql"] }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[workers]
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
