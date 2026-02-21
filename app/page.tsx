@@ -6,8 +6,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="border-b border-zinc-900 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xl">📡</span>
-          <span className="font-bold text-lg">Relay Social</span>
+          <img src="/logo.png" alt="Relay Social" className="h-8" />
         </div>
         <div className="flex gap-6 text-sm">
           <Link href="/" className="text-zinc-300 hover:text-white">Home</Link>

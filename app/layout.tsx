@@ -16,8 +16,7 @@ function NavBar() {
   return (
     <nav className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <span className="text-xl">📡</span>
-        <span className="font-bold text-lg">Relay Social</span>
+        <img src="/logo.png" alt="Relay Social" className="h-8" />
       </div>
       <div className="flex gap-6 text-sm text-zinc-400">
         <Link href="/dashboard" className={`hover:text-white ${pathname === "/dashboard" ? "text-white" : ""}`}>Dashboard</Link>
