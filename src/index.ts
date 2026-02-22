@@ -10,6 +10,7 @@ import { billingRouter } from './routes/billing';
 import { analyticsRouter } from './routes/analytics';
 import { openapiRouter } from './routes/openapi';
 import { schedulerRouter } from './routes/scheduler';
+import { oauthRouter } from './routes/oauth';
 
 export interface Env {
   DB: D1Database;
@@ -19,6 +20,8 @@ export interface Env {
   DODO_PAYMENTS_API_KEY: string;
   DODO_PRO_PRODUCT_ID: string;
   NEXT_PUBLIC_APP_URL: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_WEBHOOK_SECRET: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -32,6 +35,7 @@ app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISO
 
 // Routes
 app.route('/api/auth', authRouter);
+app.route('/api/oauth', oauthRouter);
 app.route('/api/accounts', accountsRouter);
 app.route('/api/posts', postsRouter);
 app.route('/api/webhooks', webhooksRouter);

@@ -7,6 +7,7 @@ export const users = sqliteTable('users', {
   tier: text('tier').notNull().default('free'),
   credits: integer('credits').notNull().default(0),
   dodoCustomerId: text('dodo_customer_id'),
+  dodoSubscriptionId: text('dodo_subscription_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
