@@ -57,12 +57,23 @@ authRouter.post('/login', async (c) => {
 
   const db = c.env.DB;
   
+  console.log('=== LOGIN DEBUG ===');
+  console.log('Email:', email);
+  
+  // Try a raw query first
+  const allUsers = await db.prepare('SELECT id, email FROM users').all<any>();
+  console.log('All users in DB:', allUsers);
+  
   const user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<any>();
+  console.log('Found user:', user);
+  console.log('==================');
+  
   if (!user) {
     return c.json({ error: 'Invalid credentials' }, 401);
   }
 
   const valid = await verifyPassword(password, user.password_hash);
+  console.log('Password valid:', valid);
   if (!valid) {
     return c.json({ error: 'Invalid credentials' }, 401);
   }
