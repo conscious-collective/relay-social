@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { setCookie, getCookie } from 'hono/cookie';
 import { verifyToken } from '../utils/auth';
 import { accounts } from '../schema';
 
@@ -20,10 +21,10 @@ oauthRouter.get('/instagram', async (c) => {
   const state = crypto.randomUUID();
   
   // Store state in cookie (would use Redis/DB in production)
-  c.cookie('oauth_state', state, {
+  setCookie(c, 'oauth_state', state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'Lax',
     maxAge: 60 * 10, // 10 minutes
   });
 
@@ -44,7 +45,7 @@ oauthRouter.get('/instagram/callback', async (c) => {
   
   const code = c.req.query('code');
   const state = c.req.query('state');
-  const storedState = c.req.cookie('oauth_state');
+  const storedState = getCookie(c, 'oauth_state');
   
   if (!code || !state || state !== storedState) {
     return c.redirect(`${env.NEXT_PUBLIC_APP_URL}/accounts?error=oauth_failed`);
@@ -77,7 +78,7 @@ oauthRouter.get('/instagram/callback', async (c) => {
   const profile = await getInstagramProfile(longLivedToken);
 
   // Check if user is logged in (optional - could also be new user flow)
-  const token = c.req.cookie('auth_token');
+  const token = getCookie(c, 'auth_token');
   let userId = null;
   
   if (token) {
