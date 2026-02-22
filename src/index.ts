@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { cookie } from 'hono/cookie';
 
 import { authRouter } from './routes/auth';
 import { accountsRouter } from './routes/accounts';
@@ -29,6 +30,7 @@ const app = new Hono<{ Bindings: Env }>();
 // Middleware
 app.use('*', cors());
 app.use('*', logger());
+app.use('*', cookie());
 
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
