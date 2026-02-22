@@ -11,6 +11,7 @@ import { analyticsRouter } from './routes/analytics';
 import { openapiRouter } from './routes/openapi';
 import { schedulerRouter } from './routes/scheduler';
 import { oauthRouter } from './routes/oauth';
+import { verifyToken } from './utils/auth';
 
 export interface Env {
   DB: D1Database;
@@ -121,8 +122,77 @@ app.get('/api/reference', (c) => {
   return c.redirect('/api/openapi');
 });
 
-// Serve static calendar
-app.get('/calendar', (c) => {
+// Serve calendar (requires auth)
+app.get('/calendar', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.html(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Login Required - Relay Social</title>
+        <style>
+          body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
+          .card { background: white; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          h1 { color: #333; margin-bottom: 16px; }
+          p { color: #666; margin-bottom: 24px; }
+          input { padding: 12px; border: 1px solid #ddd; border-radius: 6px; width: 300px; margin-bottom: 16px; }
+          button { padding: 12px 24px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; }
+          button:hover { background: #4338ca; }
+          .error { color: #ef4444; margin-bottom: 16px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>🔐 Login Required</h1>
+          <p>Please enter your API token to access the calendar</p>
+          <div class="error" id="error" style="display:none"></div>
+          <input type="password" id="token" placeholder="Paste your API token" />
+          <br>
+          <button onclick="login()">Access Calendar</button>
+          <script>
+            function login() {
+              const token = document.getElementById('token').value;
+              if (!token) return;
+              localStorage.setItem('relay_token', token);
+              window.location.href = '/calendar';
+            }
+            document.getElementById('token').addEventListener('keypress', e => {
+              if (e.key === 'Enter') login();
+            });
+          </script>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  try {
+    await verifyToken(token, c.env.JWT_SECRET);
+  } catch {
+    return c.html(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invalid Token - Relay Social</title>
+        <style>
+          body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
+          .card { background: white; padding: 40px; border-radius: 12px; text-align: center; }
+          h1 { color: #ef4444; }
+          button { padding: 12px 24px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 16px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>❌ Invalid Token</h1>
+          <p>Please log in again</p>
+          <button onclick="localStorage.removeItem('relay_token'); window.location.href='/calendar'">Try Again</button>
+        </div>
+      </body>
+      </html>
+    `);
+  }
   return c.html(`
 <!DOCTYPE html>
 <html lang="en">
