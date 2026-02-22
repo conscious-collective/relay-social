@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { setCookie } from 'hono/cookie';
 import { hashPassword, verifyPassword, signToken, verifyToken, generateId } from '../utils/auth';
 import { users, apiKeys } from '../schema';
 import { eq, desc } from 'drizzle-orm';
@@ -40,6 +41,14 @@ authRouter.post('/signup', async (c) => {
 
   const token = await signToken({ userId, email }, c.env.JWT_SECRET);
 
+  // Set auth cookie
+  setCookie(c, 'auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
+
   return c.json({
     user: { id: userId, email, tier: 'free' },
     token,
@@ -79,6 +88,14 @@ authRouter.post('/login', async (c) => {
   }
 
   const token = await signToken({ userId: user.id, email: user.email }, c.env.JWT_SECRET);
+
+  // Set auth cookie
+  setCookie(c, 'auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
 
   // Get API keys
   const keys = await db.prepare('SELECT id, name, key FROM api_keys WHERE user_id = ?').bind(user.id).all<any>();

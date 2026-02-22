@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { getCookie } from 'hono/cookie';
 
 import { authRouter } from './routes/auth';
 import { accountsRouter } from './routes/accounts';
@@ -122,9 +123,10 @@ app.get('/api/reference', (c) => {
   return c.redirect('/api/openapi');
 });
 
-// Serve calendar (requires auth)
+// Serve calendar (requires auth via cookie)
 app.get('/calendar', async (c) => {
-  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  // Try to get token from cookie first, then from header
+  const token = getCookie(c, 'auth_token') || c.req.header('Authorization')?.replace('Bearer ', '');
   
   if (!token) {
     return c.html(`
